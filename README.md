@@ -1,14 +1,14 @@
-# 🧬 Germline Variant Calling, QC, Annotation, and Disease-Gene Analysis Pipeline
+# 🧬 Germline Variant Calling and Annotation Pipeline
 
-This pipeline follows the GATK Best Practices with added QC, annotation, and preparation for disease-gene analysis.
+This pipeline is a simplified germline variant discovery and annotation workflow based on GATK4 Best Practices.
 
 ---
 
 ## 📂 Input Requirements
 - FASTQ files (paired-end)
-- Reference genome (e.g., hg38)
-- Known sites VCF (e.g., dbSNP)
-- Funcotator data sources for annotation
+- Reference genome (e.g., hg38.fa)
+- Known sites VCF for BQSR (e.g., dbSNP v138)
+- Funcotator data sources directory for annotation
 
 ---
 
@@ -16,69 +16,65 @@ This pipeline follows the GATK Best Practices with added QC, annotation, and pre
 
 ### 1. Align Reads
 - **Tool**: BWA
-- **Action**: Index reference and align reads to the genome.
-  
+- **Command**:  
+  - Index the reference genome.
+  - Align paired-end reads to the reference genome using `bwa mem`.
+
 ### 2. Sort and Mark Duplicates
 - **Tool**: GATK MarkDuplicatesSpark
-- **Action**: Sort BAM files and mark PCR duplicates.
+- **Command**:  
+  - Convert SAM to BAM, sort reads, and mark duplicates.
 
 ### 3. Base Quality Score Recalibration (BQSR)
-- **Tool**: GATK BaseRecalibrator, ApplyBQSR
-- **Action**: Recalibrate base quality scores using known variant sites.
+- **Tool**: GATK BaseRecalibrator and ApplyBQSR
+- **Command**:  
+  - Create a recalibration table using known sites.
+  - Apply BQSR to the BAM file.
 
 ### 4. Variant Calling
 - **Tool**: GATK HaplotypeCaller
-- **Action**: Call variants and generate a raw VCF.
+- **Command**:  
+  - Call germline variants (VCF output).
 
-### 5. VCF Quality Control (QC)
-- **Tool**: bcftools stats, plot-vcfstats
-- **Action**: Generate variant statistics and visualization plots.
-
-### 6. Variant Separation
+### 5. Select SNPs and INDELs
 - **Tool**: GATK SelectVariants
-- **Action**: Separate SNPs and INDELs into different VCF files.
+- **Command**:  
+  - Separate SNPs and INDELs from the raw variant calls into two VCF files.
 
-### 7. Variant Filtering
+### 6. Filter SNPs and INDELs
 - **Tool**: GATK VariantFiltration
-- **Action**: Apply hard filters to SNPs and INDELs based on quality metrics.
+- **Command**:  
+  - Apply hard filters to SNPs and INDELs based on QD, FS, and MQ metrics.
 
-### 8. Select High-Confidence Variants
+### 7. Select Passing Variants
 - **Tool**: GATK SelectVariants
-- **Action**: Keep only variants that pass filters.
+- **Command**:  
+  - Select only variants that pass the filters (`PASS` variants).
 
-### 9. Variant Annotation
+### 8. Annotate Variants
 - **Tool**: GATK Funcotator
-- **Action**: Annotate variants with functional information.
+- **Command**:  
+  - Annotate both SNPs and INDELs using Funcotator with a specified data source.
 
-### 10. Extract Key Variant Information
+### 9. Extract Table
 - **Tool**: GATK VariantsToTable
-- **Action**: Extract useful fields like gene names, allele frequencies, and functional annotation.
-
-### 11. Disease-Gene Analysis Preparation
-- **Tool**: Custom script / awk
-- **Action**: Extract candidate gene list for disease association matching (OMIM, ClinVar, DisGeNET).
+- **Command**:  
+  - Extract important fields (e.g., AC, AN, DP, AF, FUNCOTATION) from annotated VCFs into a final table.
 
 ---
 
 ## 📈 Output
-- BAM files after BQSR
-- Raw and filtered VCF files
-- QC statistics and plots
-- Annotated VCF files
-- Final table with important variant annotations
-- Candidate gene list for downstream disease analysis
-
----
-
-## ⚡ Example Commands
-See the full script inside [`pipeline.sh`](./pipeline.sh) for detailed command usage.
+- Sorted and duplicate-marked BAM files
+- Raw VCF files (variants called)
+- Filtered SNP and INDEL VCF files
+- Annotated SNP and INDEL VCF files
+- Final variant annotation table (`final_output_snps.table`)
 
 ---
 
 ## 📚 References
-- [GATK Best Practices Workflows](https://gatk.broadinstitute.org/)
+- [GATK Best Practices](https://gatk.broadinstitute.org/)
 - [BWA Manual](http://bio-bwa.sourceforge.net/)
-- [bcftools Documentation](http://samtools.github.io/bcftools/)
-- [Funcotator User Guide](https://gatk.broadinstitute.org/hc/en-us/articles/360035531132-Funcotator)
+- [Funcotator Documentation](https://gatk.broadinstitute.org/hc/en-us/articles/360035531132-Funcotator)
 
 ---
