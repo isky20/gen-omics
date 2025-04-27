@@ -1,64 +1,84 @@
-# 🧬 Variant Discovery Pipeline
+# 🧬 Germline Variant Calling, QC, Annotation, and Disease-Gene Analysis Pipeline
 
-- **FastQs**:  
-  Raw sequencing reads obtained from the sequencer.  
-  **Aim**: Prepare data for quality control and alignment.  
-  **Tools**: None (this is your starting point — FASTQ files).
+This pipeline follows the GATK Best Practices with added QC, annotation, and preparation for disease-gene analysis.
 
 ---
 
-- **QC (FastQs)**:  
-  Assess quality of sequencing reads (e.g., low-quality bases, adapter contamination).  
-  **Aim**: Ensure only good-quality reads are used for downstream analysis.  
-  **Tools**: FastQC, MultiQC, Trimmomatic (for trimming), fastp.
+## 📂 Input Requirements
+- FASTQ files (paired-end)
+- Reference genome (e.g., hg38)
+- Known sites VCF (e.g., dbSNP)
+- Funcotator data sources for annotation
 
 ---
 
-- **Filtering (Reads)**:  
-  Remove low-quality reads, short reads, or reads with too many unknown bases (Ns).  
-  **Aim**: Clean reads to improve mapping accuracy.  
-  **Tools**: Trimmomatic, fastp.
+## 🔹 Pipeline Steps
+
+### 1. Align Reads
+- **Tool**: BWA
+- **Action**: Index reference and align reads to the genome.
+  
+### 2. Sort and Mark Duplicates
+- **Tool**: GATK MarkDuplicatesSpark
+- **Action**: Sort BAM files and mark PCR duplicates.
+
+### 3. Base Quality Score Recalibration (BQSR)
+- **Tool**: GATK BaseRecalibrator, ApplyBQSR
+- **Action**: Recalibrate base quality scores using known variant sites.
+
+### 4. Variant Calling
+- **Tool**: GATK HaplotypeCaller
+- **Action**: Call variants and generate a raw VCF.
+
+### 5. VCF Quality Control (QC)
+- **Tool**: bcftools stats, plot-vcfstats
+- **Action**: Generate variant statistics and visualization plots.
+
+### 6. Variant Separation
+- **Tool**: GATK SelectVariants
+- **Action**: Separate SNPs and INDELs into different VCF files.
+
+### 7. Variant Filtering
+- **Tool**: GATK VariantFiltration
+- **Action**: Apply hard filters to SNPs and INDELs based on quality metrics.
+
+### 8. Select High-Confidence Variants
+- **Tool**: GATK SelectVariants
+- **Action**: Keep only variants that pass filters.
+
+### 9. Variant Annotation
+- **Tool**: GATK Funcotator
+- **Action**: Annotate variants with functional information.
+
+### 10. Extract Key Variant Information
+- **Tool**: GATK VariantsToTable
+- **Action**: Extract useful fields like gene names, allele frequencies, and functional annotation.
+
+### 11. Disease-Gene Analysis Preparation
+- **Tool**: Custom script / awk
+- **Action**: Extract candidate gene list for disease association matching (OMIM, ClinVar, DisGeNET).
 
 ---
 
-- **Alignment**:  
-  Map filtered reads to a reference genome.  
-  **Aim**: Generate BAM files showing where each read aligns on the genome.  
-  **Tools**: BWA, Bowtie2.
+## 📈 Output
+- BAM files after BQSR
+- Raw and filtered VCF files
+- QC statistics and plots
+- Annotated VCF files
+- Final table with important variant annotations
+- Candidate gene list for downstream disease analysis
 
 ---
 
-- **Post-processing**:  
-  Improve the quality of BAM files (e.g., sort, mark duplicates, recalibrate quality scores).  
-  **Aim**: Prepare BAM files for accurate variant calling.  
-  **Tools**: SAMtools, Picard, GATK BaseRecalibrator.
+## ⚡ Example Commands
+See the full script inside [`pipeline.sh`](./pipeline.sh) for detailed command usage.
 
 ---
 
-- **Variant Calling (gVCF, VCF)**:  
-  Identify SNPs and INDELs from aligned reads.  
-  **Aim**: Generate a list of variants for each sample.  
-  **Tools**: GATK HaplotypeCaller, FreeBayes, DeepVariant, bcftools call.
-
----
-
-- **QC (VCF)**:  
-  Check quality of called variants (e.g., Ti/Tv ratio, depth, genotype quality).  
-  **Aim**: Ensure variants are reliable and biologically meaningful.  
-  **Tools**: bcftools stats, vcftools, plot-vcfstats.
-
----
-
-- **Filtering (Variants)**:  
-  Remove low-confidence variants based on quality metrics (e.g., depth, GQ, filter status).  
-  **Aim**: Retain only high-quality variant calls.  
-  **Tools**: bcftools filter, GATK VariantFiltration.
-
----
-
-- **Annotation**:  
-  Add biological meaning (e.g., what genes are affected, predicted variant effect, disease association).  
-  **Aim**: Interpret the variants biologically and clinically.  
-  **Tools**: VEP (Variant Effect Predictor), ANNOVAR, SnpEff.
+## 📚 References
+- [GATK Best Practices Workflows](https://gatk.broadinstitute.org/)
+- [BWA Manual](http://bio-bwa.sourceforge.net/)
+- [bcftools Documentation](http://samtools.github.io/bcftools/)
+- [Funcotator User Guide](https://gatk.broadinstitute.org/hc/en-us/articles/360035531132-Funcotator)
 
 ---
